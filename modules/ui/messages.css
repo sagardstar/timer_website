@@ -1,0 +1,44 @@
+/* Visual message component styles (toasts/banners) */
+
+.msg-layer {
+  position: fixed; left: 0; right: 0; pointer-events: none; z-index: 9999;
+  display: flex; justify-content: center; gap: 8px; padding: 12px;
+}
+#msg-top-center { top: 12px; }
+#msg-bottom { bottom: 12px; }
+
+.msg {
+  pointer-events: auto;
+  max-width: 640px; padding: 10px 14px; border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  background: #fff8f0; color: #3a2f2a; font: 500 14px/1.35 system-ui, sans-serif;
+  border: 1px solid rgba(0,0,0,0.06); opacity: 0; transform: translateY(-8px);
+  transition: opacity .3s ease, transform .3s ease;
+}
+.msg.show { opacity: 1; transform: translateY(0); }
+
+.msg--break  { background: #fff3e0; border-color: #f3d4b1; }
+.msg--resume { background: #eef6ff; border-color: #cfe3ff; }
+.msg--streak { background: #f0fff2; border-color: #cdeccf; }
+.msg--info   { background: #fff9fb; border-color: #f1d4e5; }
+
+/* Simple sparkle for streaks */
+.msg--streak::after {
+  content: ""; display: inline-block; margin-left: 6px; width: 10px; height: 10px;
+  background: radial-gradient(circle, rgba(0,0,0,.12) 20%, transparent 21%) center/6px 6px repeat;
+  border-radius: 50%;
+  animation: sparkle 1.4s ease-out 1;
+}
+@keyframes sparkle {
+  0% { transform: scale(.6); opacity: .0; }
+  40% { opacity: .8; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg { transition: none; }
+  .msg--streak::after { animation: none; }
+}
+
+:root.high-contrast .msg { color: #111; background: #fff; border-color: #111; }
+

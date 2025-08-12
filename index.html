@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tea by the Window</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="modules/ui/messages.css" />
+    
+</head>
+<body>
+  <header class="app-header">
+    <h1>Tea by the Window</h1>
+    <button id="openSettings" aria-haspopup="dialog" class="ghost">Settings</button>
+  </header>
+
+  <!-- Screen reader announcements -->
+  <div id="aria-live" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
+  <!-- Visual message layers -->
+  <div id="msg-top-center" class="msg-layer" aria-hidden="true"></div>
+  <div id="msg-bottom" class="msg-layer" aria-hidden="true"></div>
+
+  <main class="grid">
+    <section id="scene" aria-hidden="true">
+      <div class="window">
+        <div class="sky">
+          <div class="cloud c1"></div>
+          <div class="cloud c2"></div>
+          <div class="cloud c3"></div>
+          <div class="sun"></div>
+          <div class="bird"></div>
+        </div>
+        <div class="sill"></div>
+      </div>
+      <div class="desk">
+        <div class="mug">
+          <div class="tea"></div>
+          <div class="steam s1"></div>
+          <div class="steam s2"></div>
+          <div class="steam s3"></div>
+        </div>
+      </div>
+      <!-- Centered HUD overlay inside the scene -->
+      <section id="hud" class="overlay">
+        <div id="timer" role="timer" aria-live="polite" class="timer">25:00</div>
+
+        <div id="controls" class="controls">
+          <button id="startPauseBtn" class="primary">Start</button>
+          <button id="logSessionBtn" class="ghost" aria-label="Log this session and take a break">Log Session</button>
+          <button id="skipBreakBtn" class="link" aria-label="Skip current break">Skip Break</button>
+          <!-- Hidden controls kept for accessibility/shortcuts -->
+          <button id="resetBtn" class="ghost hidden" aria-label="Reset session">Reset</button>
+          <button id="skipSessionBtn" class="ghost hidden" aria-label="Skip this session and take a break">Skip Session</button>
+        </div>
+
+        <p class="mood-line" aria-hidden="true">Steam’s swirling… take a slow sip and stretch.</p>
+
+        <div id="progress" class="progress" aria-live="polite">
+          Today: <span id="doneCount">0</span>/<span id="targetCount">4</span>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="settingsDialog" aria-label="Settings">
+    <form method="dialog" id="settingsForm">
+      <h2>Settings</h2>
+      <label>
+        Daily target
+        <input type="number" id="setTarget" min="1" max="12" step="1" />
+      </label>
+      <label>
+        <input type="checkbox" id="setAutoBreak" />
+        Auto-start break
+      </label>
+      <label>
+        <input type="checkbox" id="setAutoNext" />
+        Auto-start next session
+      </label>
+      <label>
+        <input type="checkbox" id="setWellness" />
+        Wellness prompts during work
+      </label>
+      <label>
+        Volume
+        <input type="range" id="setVolume" min="0" max="1" step="0.05" />
+      </label>
+      <label>
+        <input type="checkbox" id="setMuted" />
+        Mute all sounds
+      </label>
+      <label>
+        <input type="checkbox" id="setHighContrast" />
+        High contrast mode
+      </label>
+
+      <menu>
+        <button value="cancel" class="ghost">Cancel</button>
+        <button id="saveSettingsBtn" value="default" class="primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
