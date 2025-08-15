@@ -1,4 +1,4 @@
-const SETTINGS_KEY = 'tbw.settings.v1';
+const SETTINGS_KEY = 'tbw.settings.v2';
 
 function progressKey(dateKey) {
   return `tbw.progress.v1:${dateKey}`;
@@ -16,26 +16,37 @@ export const Storage = {
 
   loadSettings() {
     try {
-      const raw = localStorage.getItem(SETTINGS_KEY);
-      if (!raw) return {
+      // Attempt to read v2 first; if missing, try v1 and upgrade
+      let raw = localStorage.getItem(SETTINGS_KEY);
+      let parsed;
+      if (!raw) {
+        const legacy = localStorage.getItem('tbw.settings.v1');
+        parsed = legacy ? JSON.parse(legacy) : null;
+      } else {
+        parsed = JSON.parse(raw);
+      }
+      if (!parsed) return {
         targetToday: 4,
         autoStartBreak: true,
         autoStartNextWork: true,
         wellnessPrompts: false,
         volume: 0.5,
-        muted: false
+        muted: false,
+        workEndSound: 'bell',
+        breakEndSound: 'bell'
       };
-      const parsed = JSON.parse(raw);
       return {
         targetToday: parsed.targetToday ?? 4,
         autoStartBreak: parsed.autoStartBreak ?? true,
         autoStartNextWork: parsed.autoStartNextWork ?? true,
         wellnessPrompts: parsed.wellnessPrompts ?? false,
         volume: parsed.volume ?? 0.5,
-        muted: parsed.muted ?? false
+        muted: parsed.muted ?? false,
+        workEndSound: parsed.workEndSound ?? 'bell',
+        breakEndSound: parsed.breakEndSound ?? 'bell'
       };
     } catch {
-      return { targetToday: 4, autoStartBreak: true, autoStartNextWork: true, wellnessPrompts: false, volume: 0.5, muted: false };
+      return { targetToday: 4, autoStartBreak: true, autoStartNextWork: true, wellnessPrompts: false, volume: 0.5, muted: false, workEndSound: 'bell', breakEndSound: 'bell' };
     }
   },
 
@@ -46,7 +57,9 @@ export const Storage = {
       autoStartNextWork: !!s.autoStartNextWork,
       wellnessPrompts: !!s.wellnessPrompts,
       volume: typeof s.volume === 'number' ? s.volume : 0.5,
-      muted: !!s.muted
+      muted: !!s.muted,
+      workEndSound: s.workEndSound === 'bird' ? 'bird' : 'bell',
+      breakEndSound: s.breakEndSound === 'bird' ? 'bird' : 'bell'
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
   },
@@ -73,4 +86,3 @@ export const Storage = {
     localStorage.setItem(progressKey(dateKey), JSON.stringify(next));
   }
 };
-

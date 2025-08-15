@@ -40,9 +40,15 @@ const state = new AppState({
 
 // ---------- Audio
 const audio = createAudio({ volume: savedSettings.volume ?? 0.5, muted: savedSettings.muted ?? false });
-// NOTE: provide your own asset files in /public/assets/sounds/
-audio.load('startClink', './public/assets/sounds/start_clink.mp3');
-audio.load('endChime', './public/assets/sounds/end_chime.mp3');
+// Load available end sounds
+audio.load('bell', './public/assets/sounds/bell.mp3');
+audio.load('bird', './public/assets/sounds/bird-sound.mp3');
+// Lightweight start cue mapped to bell for now
+audio.load('startClink', './public/assets/sounds/bell.mp3');
+
+// Selected end sounds (defaults to bell for both)
+let workEndSound = savedSettings.workEndSound ?? 'bell';
+let breakEndSound = savedSettings.breakEndSound ?? 'bell';
 
 // ---------- Animations binding
 const teaLevelBinder = bindTeaLevel(document.querySelector('.tea'));
@@ -56,6 +62,7 @@ const timer = createTimer({
     if (sec !== lastWhole) {
       timerEl.textContent = formatMMSS(sec);
       lastWhole = sec;
+      updateTabUI();
     }
     if (state.mode === 'WORK_RUNNING') {
       teaLevelBinder(state.workDurationMs - ms, state.workDurationMs);
@@ -82,6 +89,7 @@ updateProgress();
 updateButtons();
 setTimeOfDayVisual();
 timerEl.textContent = formatMMSS(Math.ceil(state.remainingMs/1000));
+updateTabUI();
 
 // ---------- Button wiring
 startPauseBtn.addEventListener('click', () => {
@@ -158,6 +166,7 @@ function startWork() {
   timer.start(state.remainingMs);
   startPauseBtn.textContent = 'Pause';
   updateButtons();
+  updateTabUI();
   if (randomPromptHandle?.id) clearTimeout(randomPromptHandle.id);
   randomPromptHandle = Nudges.scheduleRandomForWork({
     settings: { wellnessPrompts: Storage.loadSettings().wellnessPrompts ?? false },
@@ -173,6 +182,7 @@ function pauseTimer() {
     pauseStartedAt = Date.now();
     startPauseBtn.textContent = 'Resume';
     updateButtons();
+    updateTabUI();
   }
 }
 
@@ -186,6 +196,7 @@ function resumeTimer() {
     state.mode = state.mode === 'WORK_PAUSED' ? 'WORK_RUNNING' : 'BREAK_RUNNING';
     startPauseBtn.textContent = 'Pause';
     updateButtons();
+    updateTabUI();
   }
 }
 
@@ -199,10 +210,11 @@ function resetToIdle() {
   setBreakVisual(false);
   startPauseBtn.textContent = 'Start';
   updateButtons();
+  updateTabUI();
 }
 
 function onWorkComplete() {
-  audio.play('endChime');
+  audio.play(workEndSound);
   state.doneToday += 1;
   state.streakCount += 1;
   Storage.saveTodayProgress(todayKey, { done: state.doneToday, streak: state.streakCount });
@@ -229,6 +241,7 @@ function startBreak() {
   timer.start(state.remainingMs);
   startPauseBtn.textContent = 'Pause';
   updateButtons();
+  updateTabUI();
 }
 
 function enterBreakPaused() {
@@ -242,6 +255,8 @@ function enterBreakPaused() {
 }
 
 function onBreakComplete() {
+  // Play the selected break end sound before transitioning
+  audio.play(breakEndSound);
   if (state.autoStartNextWork) {
     startWork();
   } else {
@@ -283,6 +298,21 @@ function openSettings() {
   settingsForm.querySelector('#setVolume').value = String(s.volume ?? 0.5);
   settingsForm.querySelector('#setMuted').checked = s.muted ?? false;
   settingsForm.querySelector('#setHighContrast').checked = document.documentElement.classList.contains('high-contrast');
+  // sounds
+  const workSel = settingsForm.querySelector('#setWorkEndSound');
+  const breakSel = settingsForm.querySelector('#setBreakEndSound');
+  if (workSel) workSel.value = s.workEndSound ?? 'bell';
+  if (breakSel) breakSel.value = s.breakEndSound ?? 'bell';
+
+  // wire test buttons (bind once per open for safety)
+  const testWorkBtn = settingsForm.querySelector('#testWorkEndSoundBtn');
+  const testBreakBtn = settingsForm.querySelector('#testBreakEndSoundBtn');
+  if (testWorkBtn && workSel) {
+    testWorkBtn.onclick = () => audio.play(workSel.value === 'bird' ? 'bird' : 'bell');
+  }
+  if (testBreakBtn && breakSel) {
+    testBreakBtn.onclick = () => audio.play(breakSel.value === 'bird' ? 'bird' : 'bell');
+  }
 
   settingsDialog.showModal();
 }
@@ -299,7 +329,9 @@ document.getElementById('saveSettingsBtn').addEventListener('click', (e) => {
     autoStartNextWork: !!settingsForm.querySelector('#setAutoNext').checked,
     wellnessPrompts: !!settingsForm.querySelector('#setWellness').checked,
     volume: parseFloat(settingsForm.querySelector('#setVolume').value || '0.5'),
-    muted: !!settingsForm.querySelector('#setMuted').checked
+    muted: !!settingsForm.querySelector('#setMuted').checked,
+    workEndSound: settingsForm.querySelector('#setWorkEndSound')?.value === 'bird' ? 'bird' : 'bell',
+    breakEndSound: settingsForm.querySelector('#setBreakEndSound')?.value === 'bird' ? 'bird' : 'bell'
   };
   Storage.saveSettings(next);
   // apply
@@ -308,6 +340,8 @@ document.getElementById('saveSettingsBtn').addEventListener('click', (e) => {
   state.autoStartNextWork = next.autoStartNextWork;
   audio.setVolume(next.volume);
   audio.setMuted(next.muted);
+  workEndSound = next.workEndSound;
+  breakEndSound = next.breakEndSound;
   document.documentElement.classList.toggle('high-contrast', !!settingsForm.querySelector('#setHighContrast').checked);
   updateProgress();
   settingsDialog.close();
@@ -317,4 +351,69 @@ function clampInt(v, min, max, def) {
   const n = parseInt(v, 10);
   if (Number.isNaN(n)) return def;
   return Math.min(max, Math.max(min, n));
+}
+
+// ---------- Tab title + favicon
+function updateTabUI() {
+  const base = 'Tea by the Window';
+  const sec = Math.ceil(state.remainingMs / 1000);
+  const time = formatMMSS(Math.max(0, sec));
+  const mode = state.mode;
+  if (mode === 'WORK_RUNNING' || mode === 'WORK_PAUSED') {
+    document.title = `🟠 ${time} — ${base}`;
+    const total = state.workDurationMs;
+    const prog = 1 - Math.max(0, Math.min(1, state.remainingMs / total));
+    setFavicon('#e09a54', prog); // warm amber from theme
+  } else if (mode === 'BREAK_RUNNING' || mode === 'BREAK_PAUSED') {
+    document.title = `🟢 ${time} — ${base}`;
+    const total = state.breakDurationMs;
+    const prog = 1 - Math.max(0, Math.min(1, state.remainingMs / total));
+    setFavicon('#2e7d32', prog); // calm tea green
+  } else {
+    document.title = base;
+    setFavicon(null);
+  }
+}
+
+function setFavicon(color, progress) {
+  const link = document.getElementById('dynamic-favicon');
+  if (!link) return;
+  if (!color) {
+    link.href = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>';
+    return;
+    }
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,size,size);
+  const cx = size/2, cy = size/2;
+  const radius = size/2 - 8;
+  // background disc
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI*2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  // background ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius-2, 0, Math.PI*2);
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  ctx.stroke();
+  // progress ring
+  const pct = typeof progress === 'number' ? Math.max(0, Math.min(1, progress)) : 0;
+  if (pct > 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius-2, -Math.PI/2, -Math.PI/2 + pct * Math.PI*2);
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = color;
+    ctx.stroke();
+  }
+  // center dot
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  link.href = canvas.toDataURL('image/png');
 }

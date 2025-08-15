@@ -6,6 +6,7 @@
   <title>Tea by the Window</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="modules/ui/messages.css" />
+  <link id="dynamic-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" />
     
 </head>
 <body>
@@ -90,6 +91,25 @@
         <input type="checkbox" id="setMuted" />
         Mute all sounds
       </label>
+      <fieldset>
+        <legend>End sounds</legend>
+        <label>
+          Session end sound
+          <select id="setWorkEndSound">
+            <option value="bell">Bell</option>
+            <option value="bird">Bird</option>
+          </select>
+          <button type="button" id="testWorkEndSoundBtn" class="ghost" aria-label="Test session end sound">Test</button>
+        </label>
+        <label>
+          Break end sound
+          <select id="setBreakEndSound">
+            <option value="bell">Bell</option>
+            <option value="bird">Bird</option>
+          </select>
+          <button type="button" id="testBreakEndSoundBtn" class="ghost" aria-label="Test break end sound">Test</button>
+        </label>
+      </fieldset>
       <label>
         <input type="checkbox" id="setHighContrast" />
         High contrast mode
