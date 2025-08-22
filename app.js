@@ -49,6 +49,7 @@ audio.load('startClink', './public/assets/sounds/bell.mp3');
 // Selected end sounds (defaults to bell for both)
 let workEndSound = savedSettings.workEndSound ?? 'bell';
 let breakEndSound = savedSettings.breakEndSound ?? 'bell';
+let notificationsEnabled = savedSettings.notificationsEnabled ?? false;
 
 // ---------- Animations binding
 const teaLevelBinder = bindTeaLevel(document.querySelector('.tea'));
@@ -215,6 +216,7 @@ function resetToIdle() {
 
 function onWorkComplete() {
   audio.play(workEndSound);
+  maybeNotify('Session complete', 'Time for a break.');
   state.doneToday += 1;
   state.streakCount += 1;
   Storage.saveTodayProgress(todayKey, { done: state.doneToday, streak: state.streakCount });
@@ -257,6 +259,7 @@ function enterBreakPaused() {
 function onBreakComplete() {
   // Play the selected break end sound before transitioning
   audio.play(breakEndSound);
+  maybeNotify('Break over', 'Back to focus.');
   if (state.autoStartNextWork) {
     startWork();
   } else {
@@ -295,6 +298,8 @@ function openSettings() {
   settingsForm.querySelector('#setAutoBreak').checked = s.autoStartBreak ?? state.autoStartBreak;
   settingsForm.querySelector('#setAutoNext').checked = s.autoStartNextWork ?? state.autoStartNextWork;
   settingsForm.querySelector('#setWellness').checked = s.wellnessPrompts ?? false;
+  const notifEl = settingsForm.querySelector('#setNotifications');
+  if (notifEl) notifEl.checked = s.notificationsEnabled ?? false;
   settingsForm.querySelector('#setVolume').value = String(s.volume ?? 0.5);
   settingsForm.querySelector('#setMuted').checked = s.muted ?? false;
   settingsForm.querySelector('#setHighContrast').checked = document.documentElement.classList.contains('high-contrast');
@@ -321,18 +326,39 @@ settingsForm.addEventListener('close', () => {
   // no-op
 });
 
-document.getElementById('saveSettingsBtn').addEventListener('click', (e) => {
+document.getElementById('saveSettingsBtn').addEventListener('click', async (e) => {
   e.preventDefault();
   const next = {
     targetToday: clampInt(settingsForm.querySelector('#setTarget').value, 1, 12, 4),
     autoStartBreak: !!settingsForm.querySelector('#setAutoBreak').checked,
     autoStartNextWork: !!settingsForm.querySelector('#setAutoNext').checked,
     wellnessPrompts: !!settingsForm.querySelector('#setWellness').checked,
+    notificationsEnabled: !!settingsForm.querySelector('#setNotifications')?.checked,
     volume: parseFloat(settingsForm.querySelector('#setVolume').value || '0.5'),
     muted: !!settingsForm.querySelector('#setMuted').checked,
     workEndSound: settingsForm.querySelector('#setWorkEndSound')?.value === 'bird' ? 'bird' : 'bell',
     breakEndSound: settingsForm.querySelector('#setBreakEndSound')?.value === 'bird' ? 'bird' : 'bell'
   };
+  // Notifications permission gating
+  if (next.notificationsEnabled) {
+    if (!('Notification' in window)) {
+      // Browser does not support notifications
+      next.notificationsEnabled = false;
+      console.warn('Desktop notifications are not supported in this browser.');
+    } else if (Notification.permission === 'granted') {
+      // ok
+    } else if (Notification.permission !== 'denied') {
+      try {
+        const p = await Notification.requestPermission();
+        if (p !== 'granted') next.notificationsEnabled = false;
+      } catch {
+        next.notificationsEnabled = false;
+      }
+    } else {
+      // denied
+      next.notificationsEnabled = false;
+    }
+  }
   Storage.saveSettings(next);
   // apply
   state.targetToday = next.targetToday;
@@ -342,6 +368,7 @@ document.getElementById('saveSettingsBtn').addEventListener('click', (e) => {
   audio.setMuted(next.muted);
   workEndSound = next.workEndSound;
   breakEndSound = next.breakEndSound;
+  notificationsEnabled = next.notificationsEnabled;
   document.documentElement.classList.toggle('high-contrast', !!settingsForm.querySelector('#setHighContrast').checked);
   updateProgress();
   settingsDialog.close();
@@ -416,4 +443,22 @@ function setFavicon(color, progress) {
   ctx.fillStyle = color;
   ctx.fill();
   link.href = canvas.toDataURL('image/png');
+}
+
+// ---------- Notifications helper
+function maybeNotify(title, body) {
+  if (!notificationsEnabled) return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  // Avoid spamming when tab is visible
+  if (document.visibilityState === 'visible') return;
+  try {
+    const n = new Notification(title, { body });
+    n.onclick = () => {
+      try { window.focus(); } catch {}
+      n.close();
+    };
+  } catch (err) {
+    // no-op
+  }
 }

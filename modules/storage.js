@@ -30,6 +30,7 @@ export const Storage = {
         autoStartBreak: true,
         autoStartNextWork: true,
         wellnessPrompts: false,
+        notificationsEnabled: false,
         volume: 0.5,
         muted: false,
         workEndSound: 'bell',
@@ -40,13 +41,14 @@ export const Storage = {
         autoStartBreak: parsed.autoStartBreak ?? true,
         autoStartNextWork: parsed.autoStartNextWork ?? true,
         wellnessPrompts: parsed.wellnessPrompts ?? false,
+        notificationsEnabled: parsed.notificationsEnabled ?? false,
         volume: parsed.volume ?? 0.5,
         muted: parsed.muted ?? false,
         workEndSound: parsed.workEndSound ?? 'bell',
         breakEndSound: parsed.breakEndSound ?? 'bell'
       };
     } catch {
-      return { targetToday: 4, autoStartBreak: true, autoStartNextWork: true, wellnessPrompts: false, volume: 0.5, muted: false, workEndSound: 'bell', breakEndSound: 'bell' };
+      return { targetToday: 4, autoStartBreak: true, autoStartNextWork: true, wellnessPrompts: false, notificationsEnabled: false, volume: 0.5, muted: false, workEndSound: 'bell', breakEndSound: 'bell' };
     }
   },
 
@@ -56,6 +58,7 @@ export const Storage = {
       autoStartBreak: !!s.autoStartBreak,
       autoStartNextWork: !!s.autoStartNextWork,
       wellnessPrompts: !!s.wellnessPrompts,
+      notificationsEnabled: !!s.notificationsEnabled,
       volume: typeof s.volume === 'number' ? s.volume : 0.5,
       muted: !!s.muted,
       workEndSound: s.workEndSound === 'bird' ? 'bird' : 'bell',

@@ -1,34 +1,76 @@
 export function createTimer({ onTick, onDone }) {
-  let running = false, last = 0, remaining = 0, rafId = null;
+  let running = false;
+  let remaining = 0;
+  let endAt = 0; // performance.now() timestamp when timer should end
+  let tickId = null;
+  let doneId = null;
+
+  const TICK_MS = 500; // UI updates; remaining is time-based so throttling is OK
+
+  function clearSchedules() {
+    if (tickId) { clearInterval(tickId); tickId = null; }
+    if (doneId) { clearTimeout(doneId); doneId = null; }
+  }
+
+  function schedule() {
+    clearSchedules();
+    // Immediate tick to update UI right away
+    tick();
+    // Regular ticks for UI updates
+    tickId = setInterval(tick, TICK_MS);
+    // Dedicated timeout to fire completion as close to real time as possible
+    const delay = Math.max(0, endAt - performance.now());
+    doneId = setTimeout(fireDone, delay);
+  }
 
   function start(ms) {
     remaining = ms;
-    running = true; last = performance.now();
-    tick();
+    endAt = performance.now() + ms;
+    running = true;
+    schedule();
   }
+
   function resume() {
     if (remaining <= 0) return;
-    running = true; last = performance.now();
-    tick();
+    endAt = performance.now() + remaining;
+    running = true;
+    schedule();
   }
-  function pause() { running = false; cancelAnimationFrame(rafId); }
-  function reset(ms) { pause(); remaining = ms; onTick?.(remaining); }
+
+  function pause() {
+    if (!running) return;
+    running = false;
+    // compute up-to-date remaining and stop scheduling
+    remaining = Math.max(0, endAt - performance.now());
+    clearSchedules();
+    onTick?.(remaining);
+  }
+
+  function reset(ms) {
+    running = false;
+    clearSchedules();
+    remaining = ms;
+    endAt = 0;
+    onTick?.(remaining);
+  }
 
   function tick() {
     if (!running) return;
-    const now = performance.now();
-    const dt = now - last; last = now;
-    remaining -= dt;
-    if (remaining <= 0) {
-      running = false;
-      onTick?.(0);
-      onDone?.();
-      return;
-    }
+    remaining = Math.max(0, endAt - performance.now());
     onTick?.(remaining);
-    rafId = requestAnimationFrame(tick);
+    if (remaining <= 0) {
+      fireDone();
+    }
+  }
+
+  function fireDone() {
+    if (!running) return;
+    running = false;
+    clearSchedules();
+    remaining = 0;
+    onTick?.(0);
+    onDone?.();
   }
 
   return { start, resume, pause, reset, getRemaining: () => remaining };
 }
-
