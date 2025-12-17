@@ -1,0 +1,20 @@
+{
+  "name": "Tea by the Window",
+  "short_name": "TeaTimer",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f6e9da",
+  "theme_color": "#e09a54",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/e09a54/ffffff?text=Tea",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512/e09a54/ffffff?text=Tea",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

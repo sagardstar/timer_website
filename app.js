@@ -4,7 +4,7 @@ import { Storage } from './modules/storage.js';
 import { createAudio } from './modules/audio.js';
 import { Nudges } from './modules/nudges/index.js';
 import { createUIAdapter } from './modules/ui/messages.js';
-import { bindTeaLevel, setBreakVisual, setTimeOfDayVisual, setSunsetMode } from './modules/animations.js';
+import { bindTeaLevel, setBreakVisual, initAmbientSky, updateAmbientSettings, setSunsetMode } from './modules/animations.js';
 
 // ---------- DOM refs
 const timerEl = document.getElementById('timer');
@@ -18,6 +18,10 @@ const targetCountEl = document.getElementById('targetCount');
 const openSettingsBtn = document.getElementById('openSettings');
 const settingsDialog = document.getElementById('settingsDialog');
 const settingsForm = document.getElementById('settingsForm');
+const moodLineEl = document.getElementById('moodLine');
+const setWorkMinEl = document.getElementById('setWorkMin');
+const setBreakMinEl = document.getElementById('setBreakMin');
+const setBeverageEl = document.getElementById('setBeverage');
 
 // ---------- UI adapter
 const ui = createUIAdapter();
@@ -27,10 +31,13 @@ const todayKey = Storage.todayKey();
 const savedSettings = Storage.loadSettings();
 const savedProgress = Storage.loadTodayProgress(todayKey);
 
+const workMin = savedSettings.workMinutes ?? 25;
+const breakMin = savedSettings.breakMinutes ?? 5;
+
 const state = new AppState({
-  workDurationMs: 25 * 60 * 1000,
-  breakDurationMs: 5 * 60 * 1000,
-  remainingMs: 25 * 60 * 1000,
+  workDurationMs: workMin * 60 * 1000,
+  breakDurationMs: breakMin * 60 * 1000,
+  remainingMs: workMin * 60 * 1000,
   doneToday: savedProgress.done,
   targetToday: savedSettings.targetToday ?? 4,
   autoStartBreak: savedSettings.autoStartBreak ?? true,
@@ -50,14 +57,17 @@ audio.load('startClink', './public/assets/sounds/bell.mp3');
 let workEndSound = savedSettings.workEndSound ?? 'bell';
 let breakEndSound = savedSettings.breakEndSound ?? 'bell';
 let notificationsEnabled = savedSettings.notificationsEnabled ?? false;
+let beverage = savedSettings.beverage ?? 'black';
 
 // ---------- Animations binding
 const teaLevelBinder = bindTeaLevel(document.querySelector('.tea'));
+updateBeverageVisual(beverage);
 
 // ---------- Timer
 let lastWhole = null;
 const timer = createTimer({
   onTick: (ms) => {
+    state.remainingMs = ms;
     // render number once per second
     const sec = Math.ceil(ms / 1000);
     if (sec !== lastWhole) {
@@ -84,11 +94,39 @@ function formatMMSS(totalSec) {
   return `${m}:${s}`;
 }
 
+function updateBeverageVisual(type) {
+  const teaEl = document.querySelector('.tea');
+  if (!teaEl) return;
+  const colors = {
+    black: '#6d3f20',   // Deep brown
+    matcha: '#75b958',  // Green
+    coffee: '#3b2618',  // Very dark brown
+    water: '#d4f1f9'    // Light blue
+  };
+  teaEl.style.backgroundColor = colors[type] || colors.black;
+}
+
+function updateMood() {
+  if (!moodLineEl) return;
+  if (state.mode === 'IDLE') {
+    moodLineEl.textContent = 'The kettle is on. Ready to focus?';
+  } else if (state.mode.startsWith('WORK')) {
+    moodLineEl.textContent = 'Steam is rising... stay with it.';
+  } else if (state.mode.startsWith('BREAK')) {
+    moodLineEl.textContent = 'Nourish yourself. Take a slow sip.';
+  }
+}
+
 // ---------- Initial render
 targetCountEl.textContent = String(state.targetToday);
 updateProgress();
+checkDayGoal();
 updateButtons();
-setTimeOfDayVisual();
+// Ambient sky (day/night sun & moon)
+initAmbientSky({
+  animatedBackground: savedSettings.animatedBackground ?? true,
+  useRealSunTimes: savedSettings.useRealSunTimes ?? true
+});
 timerEl.textContent = formatMMSS(Math.ceil(state.remainingMs/1000));
 updateTabUI();
 
@@ -288,16 +326,22 @@ function updateButtons() {
   // Skip Session allowed when not in break
   skipSessionBtn.disabled = inBreak;
   if (logSessionBtn) logSessionBtn.disabled = inBreak;
+  updateMood();
 }
 
 // ---------- Settings
 function openSettings() {
   // populate current values
   const s = Storage.loadSettings();
+  if (setWorkMinEl) setWorkMinEl.value = String(s.workMinutes ?? 25);
+  if (setBreakMinEl) setBreakMinEl.value = String(s.breakMinutes ?? 5);
+  if (setBeverageEl) setBeverageEl.value = s.beverage ?? 'black';
   settingsForm.querySelector('#setTarget').value = String(s.targetToday ?? state.targetToday);
   settingsForm.querySelector('#setAutoBreak').checked = s.autoStartBreak ?? state.autoStartBreak;
   settingsForm.querySelector('#setAutoNext').checked = s.autoStartNextWork ?? state.autoStartNextWork;
   settingsForm.querySelector('#setWellness').checked = s.wellnessPrompts ?? false;
+  settingsForm.querySelector('#setAnimatedBg').checked = s.animatedBackground ?? true;
+  settingsForm.querySelector('#setRealSunTimes').checked = s.useRealSunTimes ?? true;
   const notifEl = settingsForm.querySelector('#setNotifications');
   if (notifEl) notifEl.checked = s.notificationsEnabled ?? false;
   settingsForm.querySelector('#setVolume').value = String(s.volume ?? 0.5);
@@ -329,10 +373,15 @@ settingsForm.addEventListener('close', () => {
 document.getElementById('saveSettingsBtn').addEventListener('click', async (e) => {
   e.preventDefault();
   const next = {
+    workMinutes: clampInt(setWorkMinEl?.value, 1, 90, 25),
+    breakMinutes: clampInt(setBreakMinEl?.value, 1, 30, 5),
+    beverage: setBeverageEl?.value || beverage,
     targetToday: clampInt(settingsForm.querySelector('#setTarget').value, 1, 12, 4),
     autoStartBreak: !!settingsForm.querySelector('#setAutoBreak').checked,
     autoStartNextWork: !!settingsForm.querySelector('#setAutoNext').checked,
     wellnessPrompts: !!settingsForm.querySelector('#setWellness').checked,
+    animatedBackground: !!settingsForm.querySelector('#setAnimatedBg').checked,
+    useRealSunTimes: !!settingsForm.querySelector('#setRealSunTimes').checked,
     notificationsEnabled: !!settingsForm.querySelector('#setNotifications')?.checked,
     volume: parseFloat(settingsForm.querySelector('#setVolume').value || '0.5'),
     muted: !!settingsForm.querySelector('#setMuted').checked,
@@ -361,6 +410,17 @@ document.getElementById('saveSettingsBtn').addEventListener('click', async (e) =
   }
   Storage.saveSettings(next);
   // apply
+  beverage = next.beverage;
+  updateBeverageVisual(beverage);
+  state.workDurationMs = next.workMinutes * 60 * 1000;
+  state.breakDurationMs = next.breakMinutes * 60 * 1000;
+  if (state.mode === 'IDLE') {
+    state.remainingMs = state.workDurationMs;
+    lastWhole = null;
+    timer.reset(state.remainingMs);
+    timerEl.textContent = formatMMSS(Math.ceil(state.remainingMs / 1000));
+    updateTabUI();
+  }
   state.targetToday = next.targetToday;
   state.autoStartBreak = next.autoStartBreak;
   state.autoStartNextWork = next.autoStartNextWork;
@@ -369,6 +429,11 @@ document.getElementById('saveSettingsBtn').addEventListener('click', async (e) =
   workEndSound = next.workEndSound;
   breakEndSound = next.breakEndSound;
   notificationsEnabled = next.notificationsEnabled;
+  // Ambient sky settings
+  updateAmbientSettings({
+    animatedBackground: next.animatedBackground,
+    useRealSunTimes: next.useRealSunTimes
+  });
   document.documentElement.classList.toggle('high-contrast', !!settingsForm.querySelector('#setHighContrast').checked);
   updateProgress();
   settingsDialog.close();

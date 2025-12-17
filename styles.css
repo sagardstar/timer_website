@@ -12,6 +12,10 @@
   --sky-top: #cde6f5;       /* sky gradient */
   --sky-bottom: #f3efe0;
   --sun: #f4c98c;
+  --night-top: #0c1c3b;
+  --night-bottom: #0a1224;
+  --moon: #f0f3ff;
+  --star: rgba(255,255,255,0.9);
 
   --timer-size: clamp(56px, 11vw, 140px);
   --tea-level: 0.0; /* 0..1 controlled by JS */
@@ -64,8 +68,25 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1;
 
 /* Window & sky */
 .window { position: absolute; inset: 24px 24px auto 24px; height: 62%; border: 10px solid var(--frame); border-radius: 18px; background: #f7efe5; box-shadow: inset 0 0 0 6px rgba(255,255,255,0.45), 0 6px 18px rgba(0,0,0,0.05); }
-.sky { position: relative; width: 100%; height: 100%; overflow: hidden; background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom)); }
-.sun { position: absolute; width: 70px; height: 70px; right: 24px; top: 16px; border-radius: 50%; background: var(--sun); opacity: 0.9; box-shadow: 0 0 0 6px rgba(255,255,255,0.35) inset; }
+.sky { position: relative; width: 100%; height: 100%; overflow: hidden; background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom)); transition: background 600ms ease; }
+.sky.goal-sunset::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(255,167,81,0.3), rgba(111,72,190,0.25)); mix-blend-mode: soft-light; }
+.sun { position: absolute; width: 70px; height: 70px; left: 10px; top: 10px; border-radius: 50%; background: var(--sun); opacity: 0.0; box-shadow: 0 0 0 6px rgba(255,255,255,0.35) inset; transform: translate3d(0,0,0); transition: transform 20s linear, opacity 600ms ease; will-change: transform; }
+.moon { position: absolute; width: 56px; height: 56px; left: 10px; top: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffffff, var(--moon) 60%, #d9def9 100%); box-shadow: 0 0 20px rgba(255,255,255,0.2); opacity: 0.0; transform: translate3d(0,0,0); transition: transform 20s linear, opacity 600ms ease; will-change: transform; }
+.stars { position: absolute; inset: 0; opacity: 0; transition: opacity 800ms ease; background-image: radial-gradient(1px 1px at 10% 20%, var(--star), transparent 40%),
+                  radial-gradient(1px 1px at 30% 80%, var(--star), transparent 40%),
+                  radial-gradient(1px 1px at 50% 40%, var(--star), transparent 40%),
+                  radial-gradient(1px 1px at 70% 60%, var(--star), transparent 40%),
+                  radial-gradient(1px 1px at 80% 25%, var(--star), transparent 40%),
+                  radial-gradient(1px 1px at 20% 55%, var(--star), transparent 40%),
+                  radial-gradient(1px 1px at 85% 78%, var(--star), transparent 40%),
+                  radial-gradient(1px 1px at 40% 70%, var(--star), transparent 40%),
+                  radial-gradient(1px 1px at 60% 30%, var(--star), transparent 40%),
+                  radial-gradient(1px 1px at 15% 85%, var(--star), transparent 40%);
+}
+.sky[data-mode="night"] { background: linear-gradient(180deg, var(--night-top), var(--night-bottom)); }
+.sky[data-mode="night"] .stars { opacity: 0.9; }
+.sky[data-mode="night"] .moon { opacity: 0.95; }
+.sky[data-mode="day"] .sun { opacity: 0.95; }
 .cloud { position: absolute; top: 20%; width: 160px; height: 60px; background: #fff; border-radius: 40px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.08)); opacity: .95; }
 .c1 { left: -180px; animation: drift 40s linear infinite; }
 .c2 { top: 45%; left: -220px; width: 200px; animation: drift 55s linear infinite; }
@@ -74,6 +95,14 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1;
 .bird { position: absolute; top: 30%; left: -40px; width: 28px; height: 8px; background: transparent; border-radius: 50%; animation: bird 18s linear infinite; }
 @keyframes bird { 0% { transform: translateX(0) } 100% { transform: translateX(1200px) } }
 .sill { position: absolute; left: 16px; right: 16px; bottom: -10px; height: 22px; background: #d7b795; border-radius: 8px; box-shadow: 0 6px 10px rgba(0,0,0,0.04) inset; }
+
+/* Reduced motion or disabled background */
+@media (prefers-reduced-motion: reduce) {
+  .sun, .moon { transition: none; }
+  .cloud, .bird { animation: none !important; }
+}
+body.no-anim-bg .sun, body.no-anim-bg .moon { transition: none; }
+body.no-anim-bg .cloud, body.no-anim-bg .bird { animation: none !important; }
 
 /* Desk + mug */
 .desk { position: absolute; left: 0; right: 0; bottom: 0; height: 38%; background: linear-gradient(180deg, rgba(219,184,144,0.6), rgba(193,153,110,0.6)); }

@@ -1,7 +1,14 @@
 const SETTINGS_KEY = 'tbw.settings.v2';
+const BEVERAGE_TYPES = new Set(['black', 'matcha', 'coffee', 'water']);
 
 function progressKey(dateKey) {
   return `tbw.progress.v1:${dateKey}`;
+}
+
+function coerceInt(value, def) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const parsed = parseInt(String(value), 10);
+  return Number.isFinite(parsed) ? parsed : def;
 }
 
 export const Storage = {
@@ -34,7 +41,12 @@ export const Storage = {
         volume: 0.5,
         muted: false,
         workEndSound: 'bell',
-        breakEndSound: 'bell'
+        breakEndSound: 'bell',
+        workMinutes: 25,
+        breakMinutes: 5,
+        beverage: 'black',
+        animatedBackground: true,
+        useRealSunTimes: true
       };
       return {
         targetToday: parsed.targetToday ?? 4,
@@ -45,14 +57,20 @@ export const Storage = {
         volume: parsed.volume ?? 0.5,
         muted: parsed.muted ?? false,
         workEndSound: parsed.workEndSound ?? 'bell',
-        breakEndSound: parsed.breakEndSound ?? 'bell'
+        breakEndSound: parsed.breakEndSound ?? 'bell',
+        workMinutes: coerceInt(parsed.workMinutes, 25),
+        breakMinutes: coerceInt(parsed.breakMinutes, 5),
+        beverage: typeof parsed.beverage === 'string' && BEVERAGE_TYPES.has(parsed.beverage) ? parsed.beverage : 'black',
+        animatedBackground: parsed.animatedBackground ?? true,
+        useRealSunTimes: parsed.useRealSunTimes ?? true
       };
     } catch {
-      return { targetToday: 4, autoStartBreak: true, autoStartNextWork: true, wellnessPrompts: false, notificationsEnabled: false, volume: 0.5, muted: false, workEndSound: 'bell', breakEndSound: 'bell' };
+      return { targetToday: 4, autoStartBreak: true, autoStartNextWork: true, wellnessPrompts: false, notificationsEnabled: false, volume: 0.5, muted: false, workEndSound: 'bell', breakEndSound: 'bell', workMinutes: 25, breakMinutes: 5, beverage: 'black', animatedBackground: true, useRealSunTimes: true };
     }
   },
 
   saveSettings(s) {
+    const beverage = typeof s.beverage === 'string' && BEVERAGE_TYPES.has(s.beverage) ? s.beverage : 'black';
     const next = {
       targetToday: s.targetToday ?? 4,
       autoStartBreak: !!s.autoStartBreak,
@@ -62,7 +80,12 @@ export const Storage = {
       volume: typeof s.volume === 'number' ? s.volume : 0.5,
       muted: !!s.muted,
       workEndSound: s.workEndSound === 'bird' ? 'bird' : 'bell',
-      breakEndSound: s.breakEndSound === 'bird' ? 'bird' : 'bell'
+      breakEndSound: s.breakEndSound === 'bird' ? 'bird' : 'bell',
+      workMinutes: typeof s.workMinutes === 'number' ? s.workMinutes : 25,
+      breakMinutes: typeof s.breakMinutes === 'number' ? s.breakMinutes : 5,
+      beverage,
+      animatedBackground: s.animatedBackground !== false,
+      useRealSunTimes: s.useRealSunTimes !== false
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
   },

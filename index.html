@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="modules/ui/messages.css" />
   <link id="dynamic-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" />
+  <link rel="manifest" href="manifest.json" />
     
 </head>
 <body>
@@ -30,6 +31,8 @@
           <div class="cloud c2"></div>
           <div class="cloud c3"></div>
           <div class="sun"></div>
+          <div class="moon"></div>
+          <div class="stars" aria-hidden="true"></div>
           <div class="bird"></div>
         </div>
         <div class="sill"></div>
@@ -51,11 +54,11 @@
           <button id="logSessionBtn" class="ghost" aria-label="Log this session and take a break">Log Session</button>
           <button id="skipBreakBtn" class="link" aria-label="Skip current break">Skip Break</button>
           <!-- Hidden controls kept for accessibility/shortcuts -->
-          <button id="resetBtn" class="ghost hidden" aria-label="Reset session">Reset</button>
+          <button id="resetBtn" class="ghost" aria-label="Reset session">Reset</button>
           <button id="skipSessionBtn" class="ghost hidden" aria-label="Skip this session and take a break">Skip Session</button>
         </div>
 
-        <p class="mood-line" aria-hidden="true">Steam’s swirling… take a slow sip and stretch.</p>
+        <p id="moodLine" class="mood-line" aria-hidden="true">Steam’s swirling… take a slow sip and stretch.</p>
 
         <div id="progress" class="progress" aria-live="polite">
           Today: <span id="doneCount">0</span>/<span id="targetCount">4</span>
@@ -67,6 +70,26 @@
   <dialog id="settingsDialog" aria-label="Settings">
     <form method="dialog" id="settingsForm">
       <h2>Settings</h2>
+      <fieldset>
+        <legend>Timer Duration (minutes)</legend>
+        <label>
+          Focus
+          <input type="number" id="setWorkMin" min="1" max="60" step="1" />
+        </label>
+        <label>
+          Break
+          <input type="number" id="setBreakMin" min="1" max="30" step="1" />
+        </label>
+      </fieldset>
+      <label>
+        Beverage
+        <select id="setBeverage">
+          <option value="black">Black Tea</option>
+          <option value="matcha">Matcha</option>
+          <option value="coffee">Coffee</option>
+          <option value="water">Water</option>
+        </select>
+      </label>
       <label>
         Daily target
         <input type="number" id="setTarget" min="1" max="12" step="1" />
@@ -118,6 +141,17 @@
         <input type="checkbox" id="setHighContrast" />
         High contrast mode
       </label>
+      <fieldset>
+        <legend>Background</legend>
+        <label>
+          <input type="checkbox" id="setAnimatedBg" checked />
+          Animated day/night background
+        </label>
+        <label>
+          <input type="checkbox" id="setRealSunTimes" checked />
+          Use local sunrise/sunset (asks location permission)
+        </label>
+      </fieldset>
 
       <menu>
         <button value="cancel" class="ghost">Cancel</button>
