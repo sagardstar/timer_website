@@ -123,8 +123,11 @@ function positionSun(p) {
   const sunW = ambient.sunEl.offsetWidth;
   const sunH = ambient.sunEl.offsetHeight;
   const left = lerp(0 + 12, W - sunW - 12, p);
-  const baseY = H * 0.70; // baseline lower in frame
-  const amp = H * 0.38; // arc height
+  
+  // UPDATED MATH: Keep sun in top 25% of sky to avoid hitting text
+  const baseY = H * 0.25;
+  const amp = H * 0.10;
+  
   const y = baseY - Math.sin(Math.PI * p) * amp;
   const top = clamp(8, H - sunH - 8, y - sunH / 2);
   ambient.sunEl.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
@@ -138,8 +141,11 @@ function positionMoon(p) {
   const moonH = ambient.moonEl.offsetHeight;
   // right-to-left for contrast at night
   const left = lerp(W - moonW - 12, 12, p);
-  const baseY = H * 0.55;
-  const amp = H * 0.22;
+  
+  // UPDATED MATH: Keep moon in top 25% of sky
+  const baseY = H * 0.25;
+  const amp = H * 0.10;
+  
   const y = baseY - Math.sin(Math.PI * p) * amp;
   const top = clamp(8, H - moonH - 8, y - moonH / 2);
   ambient.moonEl.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
