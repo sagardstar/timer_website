@@ -8,154 +8,114 @@
   <link rel="stylesheet" href="modules/ui/messages.css" />
   <link id="dynamic-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" />
   <link rel="manifest" href="manifest.json" />
-    
 </head>
 <body>
   <header class="app-header">
     <h1>Tea by the Window</h1>
-    <button id="openSettings" aria-haspopup="dialog" class="ghost">Settings</button>
+    <button id="openSettings" type="button" aria-haspopup="dialog" class="ghost">Settings</button>
   </header>
 
-  <!-- Screen reader announcements -->
   <div id="aria-live" aria-live="polite" aria-atomic="true" class="sr-only"></div>
-
-  <!-- Visual message layers -->
-  <div id="msg-top-center" class="msg-layer" aria-hidden="true"></div>
-  <div id="msg-bottom" class="msg-layer" aria-hidden="true"></div>
+  <div id="msg-top-center" class="msg-layer"></div>
+  <div id="msg-bottom" class="msg-layer"></div>
 
   <main class="grid">
-    <section id="scene" aria-hidden="true">
-      <div class="window">
-        <div class="sky">
-          <div class="cloud c1"></div>
-          <div class="cloud c2"></div>
-          <div class="cloud c3"></div>
-          <div class="sun"></div>
-          <div class="moon"></div>
-          <div class="stars" aria-hidden="true"></div>
-          <div class="bird"></div>
+    <section id="scene" aria-label="Focus timer">
+      <div class="artwork" aria-hidden="true">
+        <div class="window">
+          <div class="sky">
+            <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+            <div class="sun"></div><div class="moon"></div><div class="stars"></div><div class="bird"></div>
+          </div>
+          <div class="sill"></div>
         </div>
-        <div class="sill"></div>
-      </div>
-      <div class="desk">
-        <div class="mug">
-          <div class="tea"></div>
-          <div class="steam s1"></div>
-          <div class="steam s2"></div>
-          <div class="steam s3"></div>
+        <div class="desk">
+          <div class="mug"><div class="tea"></div><div class="steam s1"></div><div class="steam s2"></div><div class="steam s3"></div></div>
         </div>
       </div>
-      <!-- Centered HUD overlay inside the scene -->
+
       <section id="hud" class="overlay">
-        <div id="timer" role="timer" aria-live="polite" class="timer">25:00</div>
-
+        <p id="stateLabel" class="state-label">Focus</p>
+        <div id="timer" role="timer" aria-label="25 minutes remaining" class="timer">25:00</div>
         <div id="controls" class="controls">
-          <button id="startPauseBtn" class="primary">Start</button>
-          <button id="logSessionBtn" class="ghost" aria-label="Log this session and take a break">Log Session</button>
-          <button id="skipBreakBtn" class="link" aria-label="Skip current break">Skip Break</button>
-          <!-- Hidden controls kept for accessibility/shortcuts -->
-          <button id="resetBtn" class="ghost" aria-label="Reset session">Reset</button>
-          <button id="skipSessionBtn" class="ghost hidden" aria-label="Skip this session and take a break">Skip Session</button>
+          <button id="startPauseBtn" type="button" class="primary">Start focus</button>
+          <button id="skipBreakBtn" type="button" class="secondary-action" hidden>Skip break</button>
+          <details id="moreActions" class="more-actions">
+            <summary aria-label="More actions">More</summary>
+            <div class="more-menu">
+              <button id="logSessionBtn" type="button">Log completed session</button>
+              <span id="logSessionHelp">Records focus completed away from this timer.</span>
+              <button id="finishEarlyBtn" type="button" hidden>Finish early</button>
+              <button id="restartBtn" type="button" hidden>Restart focus</button>
+            </div>
+          </details>
         </div>
-
-        <p id="moodLine" class="mood-line" aria-hidden="true">Steam’s swirling… take a slow sip and stretch.</p>
-
-        <div id="progress" class="progress" aria-live="polite">
-          Today: <span id="doneCount">0</span>/<span id="targetCount">4</span>
-        </div>
+        <div id="actionPanel" class="action-panel" hidden></div>
+        <p id="moodLine" class="mood-line">The kettle is on. Ready to focus?</p>
+        <button id="durationSummary" type="button" class="session-summary" aria-label="Edit timer durations">25 min focus · 5 min break</button>
+        <p id="progress" class="progress"><span id="doneCount">0</span> of <span id="targetCount">4</span> sessions today</p>
       </section>
     </section>
   </main>
 
-  <dialog id="settingsDialog" aria-label="Settings">
-    <form method="dialog" id="settingsForm">
-      <h2>Settings</h2>
-      <fieldset>
-        <legend>Timer Duration (minutes)</legend>
-        <label>
-          Focus
-          <input type="number" id="setWorkMin" min="1" max="60" step="1" />
-        </label>
-        <label>
-          Break
-          <input type="number" id="setBreakMin" min="1" max="30" step="1" />
-        </label>
-      </fieldset>
-      <label>
-        Beverage
-        <select id="setBeverage">
-          <option value="black">Black Tea</option>
-          <option value="matcha">Matcha</option>
-          <option value="coffee">Coffee</option>
-          <option value="water">Water</option>
-        </select>
-      </label>
-      <label>
-        Daily target
-        <input type="number" id="setTarget" min="1" max="12" step="1" />
-      </label>
-      <label>
-        <input type="checkbox" id="setAutoBreak" />
-        Auto-start break
-      </label>
-      <label>
-        <input type="checkbox" id="setAutoNext" />
-        Auto-start next session
-      </label>
-      <label>
-        <input type="checkbox" id="setWellness" />
-        Wellness prompts during work
-      </label>
-      <label>
-        <input type="checkbox" id="setNotifications" />
-        Desktop notifications
-      </label>
-      <label>
-        Volume
-        <input type="range" id="setVolume" min="0" max="1" step="0.05" />
-      </label>
-      <label>
-        <input type="checkbox" id="setMuted" />
-        Mute all sounds
-      </label>
-      <fieldset>
-        <legend>End sounds</legend>
-        <label>
-          Session end sound
-          <select id="setWorkEndSound">
-            <option value="bell">Bell</option>
-            <option value="bird">Bird</option>
-          </select>
-          <button type="button" id="testWorkEndSoundBtn" class="ghost" aria-label="Test session end sound">Test</button>
-        </label>
-        <label>
-          Break end sound
-          <select id="setBreakEndSound">
-            <option value="bell">Bell</option>
-            <option value="bird">Bird</option>
-          </select>
-          <button type="button" id="testBreakEndSoundBtn" class="ghost" aria-label="Test break end sound">Test</button>
-        </label>
-      </fieldset>
-      <label>
-        <input type="checkbox" id="setHighContrast" />
-        High contrast mode
-      </label>
-      <fieldset>
-        <legend>Background</legend>
-        <label>
-          <input type="checkbox" id="setAnimatedBg" checked />
-          Animated day/night background
-        </label>
-        <label>
-          <input type="checkbox" id="setRealSunTimes" checked />
-          Use local sunrise/sunset (asks location permission)
-        </label>
-      </fieldset>
+  <dialog id="settingsDialog" aria-labelledby="settingsTitle">
+    <form id="settingsForm" novalidate>
+      <div class="dialog-heading">
+        <div><h2 id="settingsTitle">Settings</h2><p id="durationApplyNote" class="settings-note" hidden>Duration changes apply to the next session.</p></div>
+        <button id="closeSettingsBtn" type="button" class="icon-button" aria-label="Close settings">×</button>
+      </div>
+      <div class="dialog-body">
+        <section aria-labelledby="timerSettingsTitle">
+          <h3 id="timerSettingsTitle">Timer</h3>
+          <div class="settings-rows">
+            <label class="setting-row" for="setWorkMin"><span>Focus duration</span><span class="input-with-unit"><input type="number" id="setWorkMin" min="1" max="90" step="1" required aria-describedby="workMinError" /><span>min</span></span></label>
+            <p id="workMinError" class="field-error" aria-live="polite"></p>
+            <label class="setting-row" for="setBreakMin"><span>Break duration</span><span class="input-with-unit"><input type="number" id="setBreakMin" min="1" max="30" step="1" required aria-describedby="breakMinError" /><span>min</span></span></label>
+            <p id="breakMinError" class="field-error" aria-live="polite"></p>
+            <label class="setting-row" for="setTarget"><span>Daily target</span><input type="number" id="setTarget" min="1" max="12" step="1" required aria-describedby="targetError" /></label>
+            <p id="targetError" class="field-error" aria-live="polite"></p>
+          </div>
+          <div class="check-list">
+            <label><input type="checkbox" id="setAutoBreak" /> Automatically start breaks</label>
+            <label><input type="checkbox" id="setAutoNext" /> Automatically start the next focus</label>
+            <label><input type="checkbox" id="setWellness" /> Wellness prompts during focus</label>
+            <label><input type="checkbox" id="setNotifications" /> Desktop notifications</label>
+          </div>
+          <p id="notificationHelp" class="settings-note" aria-live="polite"></p>
+        </section>
 
+        <details class="settings-section">
+          <summary>Sound</summary>
+          <div class="details-body settings-rows">
+            <label class="setting-row" for="setVolume"><span>Volume</span><input type="range" id="setVolume" min="0" max="1" step="0.05" /></label>
+            <label class="setting-row checkbox-row"><span>Mute all sounds</span><input type="checkbox" id="setMuted" /></label>
+            <div class="setting-row sound-row"><label for="setWorkEndSound">Focus end sound</label><span><select id="setWorkEndSound"><option value="bell">Bell</option><option value="bird">Bird</option></select><button type="button" id="testWorkEndSoundBtn" class="ghost">Test</button></span></div>
+            <div class="setting-row sound-row"><label for="setBreakEndSound">Break end sound</label><span><select id="setBreakEndSound"><option value="bell">Bell</option><option value="bird">Bird</option></select><button type="button" id="testBreakEndSoundBtn" class="ghost">Test</button></span></div>
+          </div>
+        </details>
+
+        <details class="settings-section">
+          <summary>Appearance</summary>
+          <div class="details-body settings-rows">
+            <label class="setting-row" for="setBeverage"><span>Beverage</span><select id="setBeverage"><option value="black">Black Tea</option><option value="matcha">Matcha</option><option value="coffee">Coffee</option><option value="water">Water</option></select></label>
+            <label class="setting-row checkbox-row"><span>High contrast mode</span><input type="checkbox" id="setHighContrast" /></label>
+            <label class="setting-row checkbox-row"><span>Decorative motion</span><input type="checkbox" id="setAnimatedBg" /></label>
+            <label class="setting-row checkbox-row"><span>Use location-based sunlight</span><input type="checkbox" id="setRealSunTimes" /></label>
+            <p class="settings-note">Location is requested only when this option is enabled. Otherwise, the scene follows your local clock.</p>
+          </div>
+        </details>
+
+        <details class="settings-section">
+          <summary>Keyboard shortcuts</summary>
+          <div class="details-body">
+            <label class="setting-row checkbox-row"><span>Enable single-letter shortcuts</span><input type="checkbox" id="setShortcuts" /></label>
+            <p class="shortcut-legend"><kbd>Space</kbd> start/pause/resume · <kbd>L</kbd> log offline work · <kbd>R</kbd> restart · <kbd>S</kbd> skip break</p>
+          </div>
+        </details>
+      </div>
       <menu>
-        <button value="cancel" class="ghost">Cancel</button>
-        <button id="saveSettingsBtn" value="default" class="primary">Save</button>
+        <button id="cancelSettingsBtn" type="button" class="ghost">Cancel</button>
+        <button id="saveSettingsBtn" type="submit" class="primary">Save</button>
       </menu>
     </form>
   </dialog>

@@ -15,6 +15,11 @@
   border: 1px solid rgba(0,0,0,0.06); opacity: 0; transform: translateY(-8px);
   transition: opacity .3s ease, transform .3s ease;
 }
+.msg__action {
+  min-height: 32px; margin-left: 12px; padding: 4px 8px; border: 0;
+  border-radius: 6px; background: transparent; color: inherit; font: inherit;
+  font-weight: 750; text-decoration: underline; cursor: pointer;
+}
 .msg.show { opacity: 1; transform: translateY(0); }
 
 .msg--break  { background: #fff3e0; border-color: #f3d4b1; }
@@ -41,4 +46,3 @@
 }
 
 :root.high-contrast .msg { color: #111; background: #fff; border-color: #111; }
-

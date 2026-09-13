@@ -12,7 +12,7 @@ export function setBreakVisual(isBreak) {
 // Ambient sky engine: positions sun/moon and toggles day/night based on time.
 let ambient = {
   enabled: true,
-  useRealSunTimes: true,
+  useRealSunTimes: false,
   skyEl: null,
   sunEl: null,
   moonEl: null,
@@ -20,10 +20,12 @@ let ambient = {
   rect: null,
   // cached sunrise/sunset for today, next sunrise, prev sunset
   sunTimes: null,
-  intervalId: null
+  intervalId: null,
+  dateKey: null,
+  coords: null
 };
 
-export function initAmbientSky({ animatedBackground = true, useRealSunTimes = true } = {}) {
+export function initAmbientSky({ animatedBackground = true, useRealSunTimes = false } = {}) {
   ambient.enabled = !!animatedBackground;
   ambient.useRealSunTimes = !!useRealSunTimes;
   ambient.skyEl = document.querySelector('.sky');
@@ -69,14 +71,18 @@ export function setSunsetMode(on) {
 
 async function computeSunTimes() {
   const today = new Date();
+  ambient.dateKey = localDateKey(today);
   if (!ambient.useRealSunTimes || !('geolocation' in navigator)) {
+    ambient.coords = null;
     ambient.sunTimes = fixedSunTimes(today);
     return;
   }
   try {
     const pos = await getLocationOnce({ timeout: 5000 });
-    ambient.sunTimes = solarSunTimes(today, pos.coords.latitude, pos.coords.longitude);
+    ambient.coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+    ambient.sunTimes = solarSunTimes(today, ambient.coords.latitude, ambient.coords.longitude);
   } catch {
+    ambient.coords = null;
     ambient.sunTimes = fixedSunTimes(today);
   }
 }
@@ -84,6 +90,12 @@ async function computeSunTimes() {
 function drawAmbient() {
   if (!ambient.skyEl || !ambient.sunEl || !ambient.moonEl) return;
   const now = new Date();
+  if (ambient.dateKey !== localDateKey(now)) {
+    ambient.dateKey = localDateKey(now);
+    ambient.sunTimes = ambient.coords
+      ? solarSunTimes(now, ambient.coords.latitude, ambient.coords.longitude)
+      : fixedSunTimes(now);
+  }
   const { sunrise, sunset, tomorrowSunrise, yesterdaySunset } = ambient.sunTimes || fixedSunTimes(now);
   const isDay = now >= sunrise && now < sunset;
 
@@ -173,6 +185,24 @@ function getLocationOnce({ timeout = 5000 } = {}) {
 
 // NOAA sunrise/sunset approximation
 function solarSunTimes(date, latitude, longitude) {
+  const today = solarTimesForDate(date, latitude, longitude);
+  if (!today) return fixedSunTimes(date);
+  const tomorrow = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+  const yesterday = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
+  const next = solarTimesForDate(tomorrow, latitude, longitude);
+  const previous = solarTimesForDate(yesterday, latitude, longitude);
+  const fallback = fixedSunTimes(date);
+  return {
+    sunrise: today.sunrise,
+    sunset: today.sunset,
+    tomorrowSunrise: next?.sunrise ?? fallback.tomorrowSunrise,
+    yesterdaySunset: previous?.sunset ?? fallback.yesterdaySunset
+  };
+}
+
+// Calculates one calendar day only; the wrapper above obtains adjacent days
+// without recursive calls (including at polar latitudes).
+function solarTimesForDate(date, latitude, longitude) {
   const zenith = 90.833; // civil
   const toRad = (d) => d * Math.PI / 180;
   const toDeg = (r) => r * 180 / Math.PI;
@@ -211,14 +241,11 @@ function solarSunTimes(date, latitude, longitude) {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m, s);
   }
 
-  let sunrise = compute(true);
-  let sunset = compute(false);
-  // Fallback to fixed if computation failed
-  if (!sunrise || !sunset) return fixedSunTimes(date);
-  // Tomorrow sunrise and yesterday sunset
-  const tomorrow = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-  const yesterday = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
-  const tomorrowSunrise = solarSunTimes(tomorrow, latitude, longitude).sunrise;
-  const yesterdaySunset = solarSunTimes(yesterday, latitude, longitude).sunset;
-  return { sunrise, sunset, tomorrowSunrise, yesterdaySunset };
+  const sunrise = compute(true);
+  const sunset = compute(false);
+  return sunrise && sunset ? { sunrise, sunset } : null;
+}
+
+function localDateKey(date) {
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }

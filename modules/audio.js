@@ -15,10 +15,18 @@ export function createAudio({ volume = 0.5, muted = false } = {}) {
       a.play().catch(() => {});
     } catch {}
   }
+  function preview(name, options = {}) {
+    const a = sounds.get(name);
+    if (!a || options.muted) return;
+    try {
+      a.volume = typeof options.volume === 'number' ? Math.min(1, Math.max(0, options.volume)) : volume;
+      a.currentTime = 0;
+      a.play().catch(() => {});
+    } catch {}
+  }
   function setMuted(m) { muted = !!m; }
   function setVolume(v) {
     if (typeof v === 'number') volume = Math.min(1, Math.max(0, v));
   }
-  return { load, play, setMuted, setVolume };
+  return { load, play, preview, setMuted, setVolume };
 }
-

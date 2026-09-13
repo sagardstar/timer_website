@@ -35,12 +35,12 @@ export const Nudges = {
     }
   },
 
-  scheduleRandomForWork({ settings, ui }) {
+  scheduleRandomForWork({ settings, ui, shouldShow = () => true }) {
     if (!settings.wellnessPrompts) return null;
     return scheduleRandomWorkPrompt({
       enabled: true,
       range: NUDGE_CONFIG.RANDOM_WITHIN_MIN_RANGE,
-      onFire: () => this.show('random', ui),
+      onFire: () => { if (shouldShow()) this.show('random', ui); },
       nowMs: Date.now()
     });
   },
@@ -53,9 +53,8 @@ export const Nudges = {
 
   onDayGoalReached({ ui }) {
     if (canShowMessage()) {
-      ui.showMessage("That’s a wrap for today — enjoy your evening.", 'streak');
+      ui.showMessage('Daily goal reached. Continue whenever you like.', 'streak');
       markMessageShown();
     }
   }
 };
-

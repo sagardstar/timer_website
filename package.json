@@ -1,0 +1,8 @@
+{
+  "name": "tea-by-the-window",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

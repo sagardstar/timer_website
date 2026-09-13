@@ -5,10 +5,25 @@ const DURATIONS = {
   random: 3500
 };
 
-function mount(container, text, className, ms) {
+function mount(container, text, className, ms, action) {
+  container.querySelector('.msg')?.remove();
   const el = document.createElement('div');
   el.className = `msg ${className}`;
-  el.textContent = text;
+  const label = document.createElement('span');
+  label.textContent = text;
+  el.appendChild(label);
+  if (action) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'msg__action';
+    button.textContent = action.label;
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      await action.onClick();
+      removeNow();
+    }, { once: true });
+    el.appendChild(button);
+  }
   container.appendChild(el);
 
   // announce for screen readers
@@ -20,12 +35,43 @@ function mount(container, text, className, ms) {
 
   requestAnimationFrame(() => el.classList.add('show'));
 
-  const timeout = setTimeout(() => {
-    el.classList.remove('show');
-    el.addEventListener('transitionend', () => el.remove(), { once: true });
-  }, ms);
+  let remaining = ms;
+  let startedAt = Date.now();
+  let timeout;
+  let removeFallback;
 
-  el.addEventListener('mouseenter', () => clearTimeout(timeout), { once: true });
+  function removeNow() {
+    clearTimeout(timeout);
+    clearTimeout(removeFallback);
+    el.classList.remove('show');
+    removeFallback = setTimeout(() => el.remove(), 350);
+    el.addEventListener('transitionend', () => {
+      clearTimeout(removeFallback);
+      el.remove();
+    }, { once: true });
+  }
+
+  function schedule() {
+    startedAt = Date.now();
+    timeout = setTimeout(removeNow, remaining);
+  }
+
+  function pauseDismissal() {
+    clearTimeout(timeout);
+    remaining = Math.max(0, remaining - (Date.now() - startedAt));
+  }
+
+  function resumeDismissal() {
+    if (!el.isConnected) return;
+    if (remaining <= 0) removeNow();
+    else schedule();
+  }
+
+  el.addEventListener('mouseenter', pauseDismissal);
+  el.addEventListener('mouseleave', resumeDismissal);
+  el.addEventListener('focusin', pauseDismissal);
+  el.addEventListener('focusout', resumeDismissal);
+  schedule();
 }
 
 export function createUIAdapter() {
@@ -50,6 +96,9 @@ export function createUIAdapter() {
     }
   }
 
-  return { showMessage };
-}
+  function showActionMessage(text, label, onClick) {
+    mount(bottom, text, 'msg--info', 7000, { label, onClick });
+  }
 
+  return { showMessage, showActionMessage };
+}

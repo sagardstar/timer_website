@@ -2,7 +2,7 @@ import { MESSAGES } from './library.js';
 import { NUDGE_CONFIG } from './config.js';
 
 const lastIdx = { breakStart: [], resume: [], streak: [], random: [] };
-let lastShownAt = 0;
+let lastShownAt = Number.NEGATIVE_INFINITY;
 
 export function canShowMessage(now = Date.now()) {
   return now - lastShownAt >= NUDGE_CONFIG.MESSAGE_COOLDOWN_MS;
@@ -37,6 +37,5 @@ export function scheduleRandomWorkPrompt({ enabled, range, onFire, nowMs = 0 }) 
 // for tests
 export function _resetSelectorState() {
   lastIdx.breakStart = []; lastIdx.resume = []; lastIdx.streak = []; lastIdx.random = [];
-  lastShownAt = 0;
+  lastShownAt = Number.NEGATIVE_INFINITY;
 }
-
